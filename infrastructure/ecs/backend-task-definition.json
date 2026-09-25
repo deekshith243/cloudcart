@@ -1,0 +1,46 @@
+{
+  "family": "cloudcart-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/cloudcart-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/cloudcart-backend-task-role",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/cloudcart-backend:<IMAGE_TAG>",
+      "essential": true,
+      "portMappings": [{ "containerPort": 4000, "protocol": "tcp" }],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "API_PORT", "value": "4000" },
+        { "name": "AWS_REGION", "value": "<AWS_REGION>" },
+        { "name": "AWS_S3_BUCKET", "value": "<S3_BUCKET_NAME>" },
+        { "name": "AWS_SQS_ORDER_QUEUE_URL", "value": "<SQS_QUEUE_URL>" },
+        { "name": "AWS_SNS_ORDER_TOPIC_ARN", "value": "<SNS_TOPIC_ARN>" },
+        { "name": "REDIS_URL", "value": "<ELASTICACHE_REDIS_URL>" },
+        { "name": "CORS_ORIGIN", "value": "<FRONTEND_ORIGIN>" }
+      ],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "<DATABASE_URL_SECRET_ARN>" },
+        { "name": "JWT_SECRET", "valueFrom": "<JWT_SECRET_ARN>" }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget --spider -q http://localhost:4000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 15
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cloudcart/backend",
+          "awslogs-region": "<AWS_REGION>",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

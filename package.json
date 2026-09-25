@@ -1,0 +1,25 @@
+{
+  "name": "cloudcart",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CloudCart e-commerce and order management platform",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:worker": "npm --prefix worker run dev",
+    "build": "npm run build:frontend && npm run build:backend && npm run build:worker",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "build:worker": "npm --prefix worker run build",
+    "test": "npm --prefix backend test && npm --prefix frontend test && npm --prefix worker test",
+    "lint": "npm run lint:frontend && npm run lint:backend && npm run lint:worker",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "lint:backend": "npm --prefix backend run lint",
+    "lint:worker": "npm --prefix worker run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

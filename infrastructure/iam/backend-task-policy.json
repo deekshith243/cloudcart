@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::<S3_BUCKET_NAME>/products/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["sqs:SendMessage"],
+      "Resource": "arn:aws:sqs:<AWS_REGION>:<AWS_ACCOUNT_ID>:<ORDER_QUEUE_NAME>"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["sns:Publish"],
+      "Resource": "arn:aws:sns:<AWS_REGION>:<AWS_ACCOUNT_ID>:<ORDER_TOPIC_NAME>"
+    }
+  ]
+}

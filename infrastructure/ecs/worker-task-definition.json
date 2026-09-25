@@ -1,0 +1,30 @@
+{
+  "family": "cloudcart-worker",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/cloudcart-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/cloudcart-worker-task-role",
+  "containerDefinitions": [
+    {
+      "name": "worker",
+      "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/cloudcart-worker:<IMAGE_TAG>",
+      "essential": true,
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "AWS_REGION", "value": "<AWS_REGION>" },
+        { "name": "AWS_SQS_ORDER_QUEUE_URL", "value": "<SQS_QUEUE_URL>" },
+        { "name": "AWS_SNS_ORDER_TOPIC_ARN", "value": "<SNS_TOPIC_ARN>" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cloudcart/worker",
+          "awslogs-region": "<AWS_REGION>",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

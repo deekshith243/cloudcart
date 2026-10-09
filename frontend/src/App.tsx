@@ -117,7 +117,7 @@ function Dashboard() {
             <a className="nav-item" href="#orders">
               Orders
             </a>
-            <a className="nav-item" href="#catalog">
+            <a className="nav-item" href="/admin/catalog">
               Catalog
             </a>
             <a className="nav-item" href="/products">

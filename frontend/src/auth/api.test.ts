@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { authApi, catalogApi } from './api';
+import { resolveImageSource } from '../catalog/image-utils';
 
 const storage = new Map<string, string>();
 
@@ -88,5 +89,22 @@ describe('frontend auth API', () => {
     await catalogApi.listProducts('search=speaker&limit=9');
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain('/api/v1/products?search=speaker&limit=9');
+  });
+
+  it('resolves private S3 image references through the backend', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: { url: 'https://signed.example/image?expires=900' },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      resolveImageSource('product-1', 's3://bucket/products/product-1/image.png'),
+    ).resolves.toBe('https://signed.example/image?expires=900');
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('/api/v1/products/product-1/image-url');
   });
 });

@@ -1,4 +1,10 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
 import { awsConfig, isAwsConfigured } from '../config/aws.js';
 import { AppError } from '../errors/app-error.js';
@@ -12,6 +18,7 @@ export type ImageUpload = {
 export interface ImageStorage {
   uploadObject(input: ImageUpload): Promise<string>;
   deleteObject(reference: string): Promise<void>;
+  getPresignedUrl(reference: string): Promise<string | null>;
 }
 
 export class S3ImageService implements ImageStorage {
@@ -38,6 +45,29 @@ export class S3ImageService implements ImageStorage {
     if (!parsed || !isAwsConfigured(awsConfig.region) || !isAwsConfigured(awsConfig.s3Bucket))
       return;
     await this.client.send(new DeleteObjectCommand({ Bucket: parsed.bucket, Key: parsed.key }));
+  }
+
+  async getPresignedUrl(reference: string): Promise<string | null> {
+    const parsed = this.parseReference(reference);
+    if (!parsed) return null;
+    if (!isAwsConfigured(awsConfig.region) || !isAwsConfigured(awsConfig.s3Bucket)) {
+      throw new AppError(503, 'Image storage is not configured');
+    }
+    if (parsed.bucket !== awsConfig.s3Bucket) return null;
+    const expiresIn =
+      Number.isInteger(awsConfig.s3PresignedUrlExpiresIn) && awsConfig.s3PresignedUrlExpiresIn > 0
+        ? awsConfig.s3PresignedUrlExpiresIn
+        : 900;
+    try {
+      return await getSignedUrl(
+        this.client,
+        new GetObjectCommand({ Bucket: parsed.bucket, Key: parsed.key }),
+        { expiresIn },
+      );
+    } catch (error) {
+      console.error('S3 image URL generation failed', error);
+      throw new AppError(503, 'Image storage is unavailable');
+    }
   }
 
   private parseReference(reference: string): { bucket: string; key: string } | null {

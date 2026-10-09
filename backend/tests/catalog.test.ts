@@ -260,6 +260,16 @@ describe('category API', () => {
   });
 });
 
+describe('health API', () => {
+  it('returns a public process health response without optional dependencies', async () => {
+    const { app } = await setup();
+    const response = await request(app).get('/health');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ service: 'cloudcart-api', status: 'ok' });
+  });
+});
+
 describe('product API', () => {
   it('lists and returns public product details', async () => {
     const { app, products } = await setup();

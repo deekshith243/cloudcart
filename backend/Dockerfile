@@ -8,13 +8,17 @@ RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npx prisma genera
 COPY src ./src
 RUN npm run build
 
+FROM build AS migration
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+ENV PORT=4000
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 4000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget --spider -q http://localhost:4000/health || exit 1
-CMD ["npm", "start"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD-SHELL wget --spider -q "http://127.0.0.1:${PORT}/health" || exit 1
+CMD ["node", "dist/server.js"]

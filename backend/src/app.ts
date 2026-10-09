@@ -82,12 +82,8 @@ export const createApp = (
   app.use(cors({ origin: allowedOrigins }));
   app.use(express.json({ limit: '100kb' }));
 
-  app.get('/health', async (_request, response) => {
-    response.json({
-      service: 'cloudcart-api',
-      status: 'ok',
-      dependencies: { redis: await cache.health() },
-    });
+  app.get('/health', (_request, response) => {
+    response.json({ service: 'cloudcart-api', status: 'ok' });
   });
 
   app.use('/api/v1/auth', createAuthRouter(authController, options.authRateLimiter));

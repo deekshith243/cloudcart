@@ -125,6 +125,12 @@ export class ProductService {
     }
   }
 
+  async getImageUrl(id: string): Promise<string | null> {
+    const product = await this.get(id);
+    if (!product.imageUrl || !this.imageStorage) return null;
+    return this.imageStorage.getPresignedUrl(product.imageUrl);
+  }
+
   async stats() {
     const [totalProducts, totalCategories, productsInStock, productsOutOfStock] = await Promise.all(
       [

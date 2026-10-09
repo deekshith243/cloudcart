@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, catalogApi, commerceApi, type Category, type Product } from '../auth/api';
 import { useAuth } from '../auth/useAuth';
+import { ProductImage } from './ProductImage';
 
 const money = (value: number | string) =>
   `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -95,11 +96,12 @@ export function ProductsPage() {
         {products.map((product) => (
           <a className="product-card" href={`/products/${product.id}`} key={product.id}>
             <div className="product-image">
-              {product.imageUrl ? (
-                <img src={product.imageUrl} alt="" />
-              ) : (
-                <span>{product.name.charAt(0)}</span>
-              )}
+              <ProductImage
+                productId={product.id}
+                imageReference={product.imageUrl}
+                alt=""
+                fallback={<span>{product.name.charAt(0)}</span>}
+              />
             </div>
             <span className="product-category">{product.category.name}</span>
             <h2>{product.name}</h2>
@@ -161,11 +163,12 @@ export function ProductDetailsPage({ id }: { id: string }) {
       </a>
       <section className="detail-layout">
         <div className="detail-image">
-          {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} />
-          ) : (
-            <span>{product.name.charAt(0)}</span>
-          )}
+          <ProductImage
+            productId={product.id}
+            imageReference={product.imageUrl}
+            alt={product.name}
+            fallback={<span>{product.name.charAt(0)}</span>}
+          />
         </div>
         <div className="detail-copy">
           <span className="product-category">{product.category.name}</span>

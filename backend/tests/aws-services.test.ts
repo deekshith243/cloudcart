@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { CategoryRepository } from '../src/repositories/category-repository.js';
 import type {
   ProductInput,
@@ -14,6 +15,15 @@ import { OrderService } from '../src/services/order-service.js';
 import type { OrderRepository, OrderRecord } from '../src/repositories/order-repository.js';
 import { SafeOrderEventPublisher } from '../src/services/order-events.js';
 import { imageUploadSchema } from '../src/validation/image.js';
+import { awsConfig } from '../src/config/aws.js';
+import { S3ImageService } from '../src/services/s3-service.js';
+
+vi.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: vi.fn(
+    async (_client, _command, options: { expiresIn: number }) =>
+      `https://signed.example/image?expires=${options.expiresIn}`,
+  ),
+}));
 
 const category = {
   id: 'category-1',
@@ -107,10 +117,28 @@ class Images implements ImageStorage {
   async deleteObject(reference: string) {
     this.deleted.push(reference);
   }
+  async getPresignedUrl(reference: string) {
+    return reference.startsWith('s3://bucket/') ? 'https://signed.example/image' : null;
+  }
 }
 const input = { body: Buffer.from('image'), contentType: 'image/png', extension: 'png' };
 
 describe('AWS-backed application boundaries', () => {
+  it('generates a temporary URL for a valid private S3 image reference', async () => {
+    const originalConfig = { ...awsConfig };
+    Object.assign(awsConfig, { region: 'test-region', s3Bucket: 'bucket' });
+    try {
+      await expect(
+        new S3ImageService().getPresignedUrl('s3://bucket/products/product-1/image.png'),
+      ).resolves.toBe('https://signed.example/image?expires=900');
+      expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+        expiresIn: 900,
+      });
+    } finally {
+      Object.assign(awsConfig, originalConfig);
+    }
+  });
+
   it('accepts supported image metadata and rejects unsupported files', () => {
     expect(
       imageUploadSchema.parse({ mimeType: 'image/png', size: 100, extension: 'png' }).mimeType,
@@ -129,6 +157,24 @@ describe('AWS-backed application boundaries', () => {
     expect(updated.imageUrl).toContain('/new.png');
     expect(images.uploaded).toHaveLength(1);
     expect(images.deleted).toEqual(['s3://bucket/products/product-1/old.png']);
+  });
+  it('resolves valid image references and safely ignores missing or invalid references', async () => {
+    const images = new Images();
+    const service = new ProductService(new Products(), new Categories(), new Cache(), images);
+    await expect(service.getImageUrl(product.id)).resolves.toBe('https://signed.example/image');
+
+    const products = new Products();
+    const missingImage = { ...product, imageUrl: null } as ProductRecord;
+    products.findById = async () => missingImage;
+    await expect(
+      new ProductService(products, new Categories(), new Cache(), images).getImageUrl(product.id),
+    ).resolves.toBeNull();
+
+    const invalidImage = { ...product, imageUrl: 'not-an-s3-reference' } as ProductRecord;
+    products.findById = async () => invalidImage;
+    await expect(
+      new ProductService(products, new Categories(), new Cache(), images).getImageUrl(product.id),
+    ).resolves.toBeNull();
   });
   it('publishes an order event after order creation and does not block on publish failure', async () => {
     const order: OrderRecord = {

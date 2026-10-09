@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, commerceApi, type Cart, type Order } from '../auth/api';
 import { useAuth } from '../auth/useAuth';
+import { ProductImage } from '../catalog/ProductImage';
 
 const money = (value: number) =>
   `$${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -75,11 +76,12 @@ export function CartPage() {
             {cart.items.map((item) => (
               <article className="cart-item" key={item.id}>
                 <div className="cart-thumb">
-                  {item.product.imageUrl ? (
-                    <img src={item.product.imageUrl} alt="" />
-                  ) : (
-                    item.product.name.charAt(0)
-                  )}
+                  <ProductImage
+                    productId={item.product.id}
+                    imageReference={item.product.imageUrl}
+                    alt=""
+                    fallback={item.product.name.charAt(0)}
+                  />
                 </div>
                 <div>
                   <h2>{item.product.name}</h2>

@@ -47,6 +47,10 @@ export class ProductController {
     const { id } = uuidParamSchema.parse(request.params);
     response.json({ success: true, data: await this.service.get(id) });
   };
+  getImageUrl = async (request: Request, response: Response): Promise<void> => {
+    const { id } = uuidParamSchema.parse(request.params);
+    response.json({ success: true, data: { url: await this.service.getImageUrl(id) } });
+  };
   create = async (request: Request, response: Response): Promise<void> => {
     const product = await this.service.create(createProductSchema.parse(request.body));
     response.status(201).json({ success: true, data: product });

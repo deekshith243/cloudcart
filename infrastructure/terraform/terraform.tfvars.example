@@ -1,0 +1,22 @@
+aws_region     = "us-east-1"
+project_name   = "cloudcart"
+environment    = "production"
+frontend_origin = "https://frontend.example.com"
+
+# Build and push immutable image tags before applying ECS resources.
+backend_image = "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/cloudcart-backend:<IMAGE_TAG>"
+worker_image  = "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/cloudcart-worker:<IMAGE_TAG>"
+frontend_image = "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/cloudcart-frontend:<IMAGE_TAG>"
+
+# Supply an ACM certificate ARN for HTTPS and HTTP-to-HTTPS redirect.
+acm_certificate_arn = ""
+
+# Leave empty to derive a globally unique name from account ID and region.
+s3_bucket_name = ""
+
+# Keep one NAT gateway for lower interview/development cost. Use false for AZ-level resilience.
+single_nat_gateway = true
+enable_ecs_services = false
+
+order_queue_name = "cloudcart-order-events"
+order_topic_name = "cloudcart-order-events"

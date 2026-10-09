@@ -60,6 +60,7 @@ type ProductListResponse = {
 };
 type CategoryListResponse = { success: true; data: Category[] };
 type ProductResponse = { success: true; data: Product };
+type ProductImageUrlResponse = { success: true; data: { url: string | null } };
 type CartResponse = { success: true; data: Cart };
 type OrderResponse = { success: true; data: Order };
 type OrderListResponse = {
@@ -129,6 +130,8 @@ export const catalogApi = {
   listProducts: (query = '') =>
     request<ProductListResponse>(`/api/v1/products${query ? `?${query}` : ''}`),
   getProduct: (id: string) => request<ProductResponse>(`/api/v1/products/${id}`),
+  getProductImageUrl: (id: string) =>
+    request<ProductImageUrlResponse>(`/api/v1/products/${id}/image-url`),
   listCategories: () => request<CategoryListResponse>('/api/v1/categories'),
   createProduct: (input: object) =>
     request<ProductResponse>('/api/v1/products', { method: 'POST', body: JSON.stringify(input) }),

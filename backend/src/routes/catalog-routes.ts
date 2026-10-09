@@ -16,6 +16,7 @@ export const createCategoryRouter = (controller: CategoryController): Router => 
 export const createProductRouter = (controller: ProductController): Router => {
   const router = Router();
   router.get('/', asyncHandler(controller.list));
+  router.get('/:id/image-url', asyncHandler(controller.getImageUrl));
   router.get('/:id', asyncHandler(controller.get));
   router.post('/', authenticate, requireRole('ADMIN'), asyncHandler(controller.create));
   router.put('/:id', authenticate, requireRole('ADMIN'), asyncHandler(controller.update));

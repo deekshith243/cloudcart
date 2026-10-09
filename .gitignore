@@ -7,3 +7,8 @@ dist/
 coverage/
 *.log
 .DS_Store
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+crash.log
+infrastructure/terraform/terraform.tfvars

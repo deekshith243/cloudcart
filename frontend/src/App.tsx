@@ -163,7 +163,16 @@ function Dashboard() {
               <h2>Commerce at a glance</h2>
               <p>Keep the day moving with one clear view of your storefront.</p>
             </div>
-            {user.role === 'ADMIN' && <button className="primary-action">+ Add product</button>}
+            {user.role === 'ADMIN' && (
+              <button
+                className="primary-action"
+                onClick={() => {
+                  window.location.href = '/admin/catalog';
+                }}
+              >
+                + Add product
+              </button>
+            )}
           </div>
           <div className="metric-grid">
             <article className="metric">
@@ -251,18 +260,24 @@ function Dashboard() {
 function App() {
   const { user, loading } = useAuth();
   if (loading) return <div className="auth-loading">Checking your session...</div>;
+
   const pathname = window.location.pathname;
+
   if (pathname === '/products') return <ProductsPage />;
-  if (pathname.startsWith('/products/'))
+  if (pathname.startsWith('/products/')) {
     return <ProductDetailsPage id={pathname.split('/')[2] ?? ''} />;
+  }
   if (pathname === '/cart') return user ? <CartPage /> : <AuthScreen />;
   if (pathname === '/orders') return user ? <OrdersPage /> : <AuthScreen />;
-  if (pathname.startsWith('/orders/'))
+  if (pathname.startsWith('/orders/')) {
     return user ? <OrderDetailsPage id={pathname.split('/')[2] ?? ''} /> : <AuthScreen />;
+  }
   if (pathname === '/admin/orders') return user ? <AdminOrdersPage /> : <AuthScreen />;
-  if (pathname.startsWith('/admin/orders/'))
+  if (pathname.startsWith('/admin/orders/')) {
     return user ? <OrderDetailsPage id={pathname.split('/')[3] ?? ''} admin /> : <AuthScreen />;
+  }
   if (pathname.startsWith('/admin/')) return user ? <AdminCatalogPage /> : <AuthScreen />;
+
   return user ? <Dashboard /> : <AuthScreen />;
 }
 

@@ -14,6 +14,7 @@ import type {
   ProductRecord,
   ProductRepository,
 } from '../src/repositories/product-repository.js';
+import type { OrderRepository } from '../src/repositories/order-repository.js';
 import { JwtService } from '../src/utils/jwt.js';
 
 const uuid = () => crypto.randomUUID();
@@ -154,6 +155,14 @@ const setup = async () => {
   const app = createApp(undefined, {
     categoryRepository: categories,
     productRepository: products,
+    orderRepository: {
+      getDashboardStats: async () => ({
+        grossVolume: 0,
+        ordersToday: 0,
+        openFulfillment: 0,
+        revenue: [],
+      }),
+    } as OrderRepository,
     authRateLimiter: (_request, _response, next) => next(),
   });
   return {

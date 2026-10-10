@@ -22,6 +22,12 @@ export type OrderRecord = {
 
 export type OrderListQuery = { page: number; limit: number; status?: OrderStatus };
 export type OrderListResult = { items: OrderRecord[]; totalItems: number };
+export type OrderDashboardStats = {
+  grossVolume: number;
+  ordersToday: number;
+  openFulfillment: number;
+  revenue: Array<{ date: string; revenue: number }>;
+};
 
 export interface OrderRepository {
   createFromCart(userId: string): Promise<OrderRecord>;
@@ -30,6 +36,7 @@ export interface OrderRepository {
   findMany(query: OrderListQuery): Promise<OrderListResult>;
   findById(orderId: string): Promise<OrderRecord | null>;
   updateStatus(orderId: string, status: OrderStatus): Promise<OrderRecord>;
+  getDashboardStats(now?: Date): Promise<OrderDashboardStats>;
 }
 
 const itemInclude = {
@@ -246,5 +253,52 @@ export class PrismaOrderRepository implements OrderRepository {
     });
 
     return mapOrder(order);
+  }
+
+  async getDashboardStats(now = new Date()): Promise<OrderDashboardStats> {
+    const todayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    const revenueStart = new Date(todayStart);
+    revenueStart.setUTCDate(revenueStart.getUTCDate() - 29);
+
+    const [grossVolume, ordersToday, openFulfillment, revenueOrders] = await Promise.all([
+      this.client.order.aggregate({
+        where: { status: { not: 'CANCELLED' } },
+        _sum: { totalAmount: true },
+      }),
+      this.client.order.count({
+        where: { createdAt: { gte: todayStart, lt: tomorrowStart } },
+      }),
+      this.client.order.count({
+        where: { status: { in: ['PENDING', 'PROCESSING', 'SHIPPED'] } },
+      }),
+      this.client.order.findMany({
+        where: {
+          status: { not: 'CANCELLED' },
+          createdAt: { gte: revenueStart, lt: tomorrowStart },
+        },
+        select: { createdAt: true, totalAmount: true },
+      }),
+    ]);
+
+    const revenueByDate = new Map<string, number>();
+    for (let date = new Date(revenueStart); date < tomorrowStart; date.setUTCDate(date.getUTCDate() + 1)) {
+      revenueByDate.set(date.toISOString().slice(0, 10), 0);
+    }
+
+    for (const order of revenueOrders) {
+      const date = order.createdAt.toISOString().slice(0, 10);
+      revenueByDate.set(date, (revenueByDate.get(date) ?? 0) + Number(order.totalAmount));
+    }
+
+    return {
+      grossVolume: Number(grossVolume._sum.totalAmount ?? 0),
+      ordersToday,
+      openFulfillment,
+      revenue: [...revenueByDate].map(([date, revenue]) => ({ date, revenue })),
+    };
   }
 }

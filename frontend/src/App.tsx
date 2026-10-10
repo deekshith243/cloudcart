@@ -4,7 +4,7 @@ import './App.css';
 
 import { useAuth } from './auth/useAuth';
 
-import { commerceApi, type Order } from './auth/api';
+import { commerceApi, type DashboardStats, type Order } from './auth/api';
 
 import { ProtectedRoute } from './auth/ProtectedRoute';
 
@@ -193,9 +193,20 @@ function Dashboard() {
   const { user, logout } = useAuth();
 
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(user?.role === 'ADMIN');
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role !== 'ADMIN') return;
+
+    commerceApi
+      .getAdminDashboard()
+      .then((response) => setDashboard(response.data))
+      .catch((error: unknown) => {
+        setDashboardError(error instanceof Error ? error.message : 'Unable to load dashboard');
+      })
+      .finally(() => setDashboardLoading(false));
 
     commerceApi
       .listAdminOrders()
@@ -206,6 +217,24 @@ function Dashboard() {
   }, [user]);
 
   if (!user) return null;
+
+  const revenue = dashboard?.revenue ?? [];
+  const maxRevenue = Math.max(...revenue.map((point) => point.revenue), 0);
+  const chartPoints = revenue
+    .map((point, index) => {
+      const x = revenue.length > 1 ? (index / (revenue.length - 1)) * 100 : 50;
+      const y = maxRevenue > 0 ? 100 - (point.revenue / maxRevenue) * 100 : 100;
+      return `${x},${y}`;
+    })
+    .join(' ');
+  const formatDate = (date: string) =>
+    new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+  const formatCurrency = (value: number) =>
+    `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
 
@@ -359,13 +388,8 @@ function Dashboard() {
 
               <span>Gross volume</span>
 
-              <strong>$48,290</strong>
-
-              <small className="positive">
-
-                ↑ 12.8% <em>vs last month</em>
-
-              </small>
+              <strong>{formatCurrency(dashboard?.grossVolume ?? 0)}</strong>
+              <small>{dashboardLoading ? 'Loading...' : 'All non-cancelled orders'}</small>
 
             </article>
 
@@ -373,13 +397,8 @@ function Dashboard() {
 
               <span>Orders today</span>
 
-              <strong>184</strong>
-
-              <small className="positive">
-
-                ↑ 8.2% <em>vs yesterday</em>
-
-              </small>
+              <strong>{dashboard?.ordersToday ?? 0}</strong>
+              <small>Current calendar day</small>
 
             </article>
 
@@ -387,13 +406,11 @@ function Dashboard() {
 
               <span>Open fulfillment</span>
 
-              <strong>32</strong>
-
-              <small className="attention">Needs attention</small>
-
+              <strong>{dashboard?.openFulfillment ?? 0}</strong>
+              <small>Pending, processing, and shipped</small>
             </article>
-
           </div>
+          {dashboardError && <p className="error-state" role="alert">{dashboardError}</p>}
 
           <section className="lower-grid" id="orders">
 
@@ -414,17 +431,13 @@ function Dashboard() {
               </div>
 
               <div className="chart">
-
-                <div className="chart-line" />
-
+                <svg className="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Revenue for the last 30 days">
+                  <polyline className="chart-line" points={chartPoints || '0,100 100,100'} />
+                </svg>
                 <div className="chart-labels">
-
-                  <span>Aug 27</span>
-
-                  <span>Sep 10</span>
-
-                  <span>Sep 25</span>
-
+                  <span>{revenue[0] ? formatDate(revenue[0].date) : '—'}</span>
+                  <span>{revenue[Math.floor(revenue.length / 2)] ? formatDate(revenue[Math.floor(revenue.length / 2)].date) : '—'}</span>
+                  <span>{revenue.at(-1) ? formatDate(revenue.at(-1)!.date) : '—'}</span>
                 </div>
 
               </div>

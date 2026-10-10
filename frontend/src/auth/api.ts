@@ -70,6 +70,17 @@ type OrderListResponse = {
     pagination: { page: number; limit: number; totalItems: number; totalPages: number };
   };
 };
+export type DashboardStats = {
+  totalProducts: number;
+  totalCategories: number;
+  productsInStock: number;
+  productsOutOfStock: number;
+  grossVolume: number;
+  ordersToday: number;
+  openFulfillment: number;
+  revenue: Array<{ date: string; revenue: number }>;
+};
+type DashboardResponse = { success: true; data: DashboardStats };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -181,4 +192,5 @@ export const commerceApi = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
+  getAdminDashboard: () => request<DashboardResponse>('/api/v1/admin/dashboard'),
 };

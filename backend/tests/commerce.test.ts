@@ -233,6 +233,45 @@ class MemoryOrderRepository implements OrderRepository {
     order.status = status;
     return order;
   }
+  async getDashboardStats(now = new Date()) {
+    const todayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    const revenueStart = new Date(todayStart);
+    revenueStart.setUTCDate(revenueStart.getUTCDate() - 29);
+    const revenueByDate = new Map<string, number>();
+
+    for (
+      let date = new Date(revenueStart);
+      date < tomorrowStart;
+      date.setUTCDate(date.getUTCDate() + 1)
+    ) {
+      revenueByDate.set(date.toISOString().slice(0, 10), 0);
+    }
+
+    for (const order of this.records) {
+      if (order.status === 'CANCELLED') continue;
+      const date = order.createdAt.toISOString().slice(0, 10);
+      if (revenueByDate.has(date)) {
+        revenueByDate.set(date, (revenueByDate.get(date) ?? 0) + order.totalAmount);
+      }
+    }
+
+    return {
+      grossVolume: this.records
+        .filter((order) => order.status !== 'CANCELLED')
+        .reduce((total, order) => total + order.totalAmount, 0),
+      ordersToday: this.records.filter(
+        (order) => order.createdAt >= todayStart && order.createdAt < tomorrowStart,
+      ).length,
+      openFulfillment: this.records.filter((order) =>
+        ['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status),
+      ).length,
+      revenue: [...revenueByDate].map(([date, revenue]) => ({ date, revenue })),
+    };
+  }
 }
 
 const setup = async () => {

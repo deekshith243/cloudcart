@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { UserRole, type User } from '@prisma/client';
 import { createApp } from '../src/app.js';
 import type { CategoryRepository } from '../src/repositories/category-repository.js';
+import type { OrderRepository } from '../src/repositories/order-repository.js';
 import type { ProductRepository } from '../src/repositories/product-repository.js';
 import type { UserRepository, UserRecord } from '../src/repositories/user-repository.js';
 import { JwtService } from '../src/utils/jwt.js';
@@ -74,6 +75,14 @@ const setup = async () => {
     authRateLimiter: (_request, _response, next) => next(),
     categoryRepository,
     productRepository,
+    orderRepository: {
+      getDashboardStats: async () => ({
+        grossVolume: 0,
+        ordersToday: 0,
+        openFulfillment: 0,
+        revenue: [],
+      }),
+    } as OrderRepository,
   });
   return { app, repository };
 };

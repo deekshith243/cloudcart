@@ -65,9 +65,9 @@ export const createApp = (
     imageStorage,
   );
   const productController = new ProductController(productService);
-  const adminController = new AdminCatalogController(productService);
   const cartRepository = options.cartRepository ?? new PrismaCartRepository(prisma);
   const orderRepository = options.orderRepository ?? new PrismaOrderRepository(prisma);
+  const adminController = new AdminCatalogController(productService, orderRepository);
   const cartController = new CartController(new CartService(cartRepository, productRepository));
   const orderController = new OrderController(
     new OrderService(orderRepository, new SqsOrderEventService()),

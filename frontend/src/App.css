@@ -200,11 +200,16 @@ h3 {
   background: repeating-linear-gradient(to bottom, transparent 0 44px, #edf2ed 45px);
 }
 .chart-line {
+  fill: none;
+  stroke: #e8b65a;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.chart-svg {
   position: absolute;
   inset: 32px 4% 28px;
-  border-top: 3px solid #e8b65a;
-  transform: skewY(-9deg) rotate(-2deg);
-  border-radius: 50%;
+  width: 92%;
+  height: calc(100% - 60px);
 }
 .chart-labels {
   position: absolute;

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-import { resolveProductImage } from '../src/data/product-images.js';
+import { isPreviousProductImage, resolveProductImage } from '../src/data/product-images.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL must be set before backfilling product images');
@@ -38,7 +38,10 @@ const main = async () => {
   let unmatched = 0;
 
   for (const product of products) {
-    if (hasUsableImageReference(product.imageUrl)) {
+    const needsCorrection =
+      isPreviousProductImage(product.name, product.imageUrl) ||
+      !hasUsableImageReference(product.imageUrl);
+    if (!needsCorrection) {
       skipped += 1;
       continue;
     }

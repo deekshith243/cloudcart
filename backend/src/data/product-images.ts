@@ -1,6 +1,7 @@
 type ProductImageDefinition = {
   name: string;
   imageUrl: string;
+  previousImageUrls?: string[];
 };
 
 const productImages: ProductImageDefinition[] = [
@@ -42,7 +43,10 @@ const productImages: ProductImageDefinition[] = [
   {
     name: 'Merino Travel Blanket',
     imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/2/2f/Blanket_%28AM_2007.16.1-2%29.jpg',
+    previousImageUrls: [
       'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=85',
+    ],
   },
   {
     name: 'Compact Bluetooth Speaker',
@@ -52,16 +56,28 @@ const productImages: ProductImageDefinition[] = [
   {
     name: 'Walnut Headphone Stand',
     imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/0/03/Devialet_200_remote_%26_Headphone_stand_%282015-04-12_19.22.38_by_c-g.%29.jpg',
+    previousImageUrls: [
       'https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=900&q=85',
+    ],
   },
   {
     name: 'Analog Alarm Clock',
     imageUrl:
+      'https://commons.wikimedia.org/wiki/Special:FilePath/DCF77-Wecker,_analog_und_digital,_1.jpeg?width=900',
+    previousImageUrls: [
       'https://images.unsplash.com/photo-1508057198894-247b23fe5ade?auto=format&fit=crop&w=900&q=85',
+    ],
   },
 ];
 
 const imageByName = new Map(productImages.map((product) => [product.name.toLowerCase(), product.imageUrl]));
+const previousImagesByName = new Map<string, Set<string>>(
+  productImages.map((product) => [
+    product.name.toLowerCase(),
+    new Set(product.previousImageUrls ?? []),
+  ]),
+);
 
 const keywordImages: Array<{ keywords: string[]; imageUrl: string }> = [
   {
@@ -129,3 +145,9 @@ export const resolveProductImage = (
 
   return categoryImages.get(category.trim().toLowerCase()) ?? null;
 };
+
+export const isPreviousProductImage = (name: string, imageUrl: string | null): boolean =>
+  Boolean(
+    imageUrl &&
+      previousImagesByName.get(name.trim().toLowerCase())?.has(imageUrl),
+  );

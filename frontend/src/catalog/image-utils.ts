@@ -21,7 +21,7 @@ export const resolveImageSource = async (
 
   const resolution = (async () => {
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), IMAGE_URL_TIMEOUT_MS);
+    const timeout = globalThis.setTimeout(() => controller.abort(), IMAGE_URL_TIMEOUT_MS);
     try {
       const response = await catalogApi.getProductImageUrl(productId, controller.signal);
       const url = response.data.url;
@@ -31,7 +31,7 @@ export const resolveImageSource = async (
       });
       return url;
     } finally {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
     }
   })();
 

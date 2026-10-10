@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, UserRole } from '@prisma/client';
+import { resolveProductImage } from '../src/data/product-images.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -9,7 +10,12 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL must be set before seeding');
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({
+    connectionString: databaseUrl,
+    ssl: { rejectUnauthorized: false },
+  }),
+});
 
 const adminPassword = process.env.SEED_ADMIN_PASSWORD;
 const customerPassword = process.env.SEED_CUSTOMER_PASSWORD;
@@ -149,7 +155,7 @@ const main = async () => {
   for (const product of products) {
     const categoryId = categoryRecords.get(product.category);
     if (!categoryId) throw new Error(`Missing seeded category: ${product.category}`);
-    await prisma.product.upsert({
+    const record = await prisma.product.upsert({
       where: { categoryId_name: { categoryId, name: product.name } },
       update: {
         description: product.description,
@@ -162,9 +168,16 @@ const main = async () => {
         description: product.description,
         price: product.price,
         stock: product.stock,
+        imageUrl: resolveProductImage(product.name, product.description, product.category),
         categoryId,
       },
     });
+    if (!record.imageUrl) {
+      await prisma.product.update({
+        where: { id: record.id },
+        data: { imageUrl: resolveProductImage(product.name, product.description, product.category) },
+      });
+    }
   }
 
   console.log(`Seeded ${categories.length} categories, ${products.length} products, and 2 users.`);

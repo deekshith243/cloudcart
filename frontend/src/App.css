@@ -480,6 +480,19 @@ h3 {
   height: 100%;
   object-fit: cover;
 }
+.product-image-loading {
+  width: 38%;
+  height: 38%;
+  border: 3px solid #c8d8cc;
+  border-top-color: #52766b;
+  border-radius: 50%;
+  animation: image-loading-spin 0.8s linear infinite;
+}
+@keyframes image-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .product-category {
   color: #82918b;
   font: 700 10px var(--mono);

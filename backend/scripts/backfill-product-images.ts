@@ -13,10 +13,22 @@ const prisma = new PrismaClient({
   }),
 });
 
-const hasUsableImageReference = (imageUrl: string | null): boolean =>
-  Boolean(imageUrl?.startsWith('https://') || imageUrl?.startsWith('http://') || imageUrl?.startsWith('s3://'));
+const hasUsableImageReference = (imageUrl: string | null): boolean => {
+  if (!imageUrl?.trim()) return false;
+  if (imageUrl.startsWith('s3://')) {
+    const reference = imageUrl.slice('s3://'.length);
+    return reference.includes('/') && reference.indexOf('/') > 0 && reference.length > reference.indexOf('/') + 1;
+  }
+  try {
+    const url = new URL(imageUrl);
+    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+};
 
 const main = async () => {
+  const dryRun = process.argv.includes('--dry-run');
   const products = await prisma.product.findMany({
     include: { category: { select: { name: true } } },
     orderBy: { name: 'asc' },
@@ -38,12 +50,14 @@ const main = async () => {
       continue;
     }
 
-    await prisma.product.update({ where: { id: product.id }, data: { imageUrl } });
+    if (!dryRun) {
+      await prisma.product.update({ where: { id: product.id }, data: { imageUrl } });
+    }
     assigned += 1;
   }
 
   console.log(
-    `Checked ${products.length} products; assigned ${assigned} images; preserved ${skipped} existing references; unmatched ${unmatched}.`,
+    `${dryRun ? '[dry-run] ' : ''}Checked ${products.length} products; assigned ${assigned} images; preserved ${skipped} existing references; unmatched ${unmatched}.`,
   );
 };
 
@@ -53,4 +67,3 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => prisma.$disconnect());
-

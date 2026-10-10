@@ -17,6 +17,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
     "images:backfill": "tsx scripts/backfill-product-images.ts",
+    "images:backfill:dry-run": "tsx scripts/backfill-product-images.ts --dry-run",
     "db:setup": "npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed"
   },
   "dependencies": {

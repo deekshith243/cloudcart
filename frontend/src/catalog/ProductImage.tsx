@@ -1,5 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { resolveImageSource } from './image-utils';
+
+const IMAGE_LOAD_TIMEOUT_MS = 10_000;
 
 export const ProductImage = ({
   productId,
@@ -13,41 +15,92 @@ export const ProductImage = ({
   fallback: ReactNode;
 }) => {
   const imageKey = `${productId}:${imageReference ?? ''}`;
-  const [resolved, setResolved] = useState<{ key: string; url: string | null; failed: boolean }>({
+  const [resolved, setResolved] = useState<{
+    key: string;
+    url: string | null;
+    status: 'loading' | 'ready' | 'failed';
+  }>({
     key: imageKey,
     url: null,
-    failed: false,
+    status: 'loading',
   });
+  const imageLoadTimer = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
     void resolveImageSource(productId, imageReference)
       .then((url) => {
-        if (active) setResolved({ key: imageKey, url, failed: false });
+        if (active) setResolved({ key: imageKey, url, status: url ? 'loading' : 'failed' });
       })
       .catch(() => {
-        if (active) setResolved({ key: imageKey, url: null, failed: true });
+        if (active) setResolved({ key: imageKey, url: null, status: 'failed' });
       });
     return () => {
       active = false;
     };
   }, [productId, imageReference, imageKey]);
 
-  const source = resolved.key === imageKey ? resolved.url : null;
-  const failed = resolved.key === imageKey && resolved.failed;
-  if (!source && !failed) return <span className="product-image-loading" aria-label="Loading product image" />;
-  if (failed) {
+  const isCurrent = resolved.key === imageKey;
+  const source = isCurrent ? resolved.url : null;
+  const status = isCurrent ? resolved.status : 'loading';
+
+  useEffect(() => {
+    if (imageLoadTimer.current !== null) {
+      window.clearTimeout(imageLoadTimer.current);
+      imageLoadTimer.current = null;
+    }
+    if (!source || status !== 'loading') return;
+
+    imageLoadTimer.current = window.setTimeout(() => {
+      if (import.meta.env.DEV) console.warn(`Product image timed out: ${productId}`);
+      setResolved((current) =>
+        current.key === imageKey ? { ...current, status: 'failed' } : current,
+      );
+    }, IMAGE_LOAD_TIMEOUT_MS);
+
+    return () => {
+      if (imageLoadTimer.current !== null) {
+        window.clearTimeout(imageLoadTimer.current);
+        imageLoadTimer.current = null;
+      }
+    };
+  }, [imageKey, productId, source, status]);
+
+  if (status === 'failed') {
     if (import.meta.env.DEV) console.warn(`Product image failed to load: ${productId}`);
     return fallback;
   }
+  if (!source) {
+    return <span className="product-image-loading" aria-label="Loading product image" />;
+  }
+
   return (
-    <img
-      src={source ?? undefined}
-      alt={alt}
-      onError={(event) => {
-        if (import.meta.env.DEV) console.warn(`Product image failed to load: ${event.currentTarget.src}`);
-        setResolved({ key: imageKey, url: null, failed: true });
-      }}
-    />
+    <>
+      <img
+        className={status === 'loading' ? 'product-image-pending' : undefined}
+        src={source}
+        alt={alt}
+        onLoad={() => {
+          if (imageLoadTimer.current !== null) {
+            window.clearTimeout(imageLoadTimer.current);
+            imageLoadTimer.current = null;
+          }
+          setResolved((current) =>
+            current.key === imageKey ? { ...current, status: 'ready' } : current,
+          );
+        }}
+        onError={(event) => {
+          if (import.meta.env.DEV) {
+            console.warn(`Product image failed to load: ${event.currentTarget.src}`);
+          }
+          setResolved((current) =>
+            current.key === imageKey ? { ...current, status: 'failed' } : current,
+          );
+        }}
+      />
+      {status === 'loading' && (
+        <span className="product-image-loading" aria-label="Loading product image" />
+      )}
+    </>
   );
 };
